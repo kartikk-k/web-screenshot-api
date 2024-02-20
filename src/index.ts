@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import cors from 'cors';
 import router from './router';
-import * as playwright from 'playwright'
 
 
 // for loding .env file
@@ -29,5 +28,9 @@ server.listen(8080, async () => {
     console.log('Server is running on port 8080')
 });
 
+
+app.get('/', (req, res) => {
+    res.send('active')
+})
 
 app.use('/api', router())
