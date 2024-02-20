@@ -1,74 +1,49 @@
 import express from 'express';
-import { chromium, devices, BrowserContext } from 'playwright'
+import { chromium, devices, BrowserContext, Browser } from 'playwright'
+import captureScreen from './captureScreen';
+import CONSTANTS from '../helpers/constants';
+import * as z from 'zod';
 
-let browser: BrowserContext | null = null;
+let browserContext: Browser | null = null;
 
 export const takeScreenshot = async (req: express.Request, res: express.Response) => {
 
-    if (!browser) await launchBrowser();
+    // check if browser is already running otherwise launch it
+    if (!browserContext) await launchBrowser();
 
-    try {
-        let url = req.query.url;
+    // validate request params
+    const paramsSchema = z.object({
+        url: z.string().url(),
+        height: z.number().optional().default(CONSTANTS.height),
+        width: z.number().optional().default(CONSTANTS.width),
+        timeout: z.number().max(15000).optional().default(CONSTANTS.timeout), // max timeout is 15 seconds
+        fullPage: z.boolean().optional().default(true),
+        darkMode: z.boolean().optional().default(false)
+    })
 
-        if (!url) return Error('url is required');
-        url = url.toString();
+    // get request params
+    let { url, height, width, timeout, fullPage, darkMode } = req.query
 
-        const page = await browser.newPage();
-        await page.goto(url.toString(), { waitUntil: 'load' });
+    const convertedHeight: number = parseInt(height as string) || CONSTANTS.height
+    const convertedWidth: number = parseInt(width as string) || CONSTANTS.width
 
-        // console.log('scrolling to trigger lazy loading');
-        await page.evaluate(() => {
-            return new Promise((resolve) => {
-                let totalHeight = 0;
-                let distance = window.innerHeight;
-                let timer = setInterval(() => {
-                    let scrollHeight = document.body.scrollHeight;
-                    window.scrollBy(0, distance);
-                    totalHeight += distance;
+    // parse and validate request params
+    const parsedParams = paramsSchema.safeParse({ url: url, height: convertedHeight, width: convertedWidth, timeout: timeout, fullPage: fullPage, darkMode: darkMode })
 
-                    if (totalHeight >= scrollHeight) {
-                        clearInterval(timer);
-                        resolve(console.log(''));
-                    }
-                }, 100);
-            });
-        });
+    // throw error if request params are invalid
+    if (parsedParams.success === false) return res.status(400).json({ error: parsedParams.error.errors[0].message })
 
-        await new Promise((resolve) => {
-            setTimeout(resolve, 1000);
-        });
 
-        let result = await page.screenshot({
-            fullPage: true,
-            scale: 'device',
-        });
-
-        await page.close();
-
-        console.log('closing browser');
-
-        await browser.close();
-        browser = null;
-        // const users = await getUsers();
-        return res.json({ data: result.toString('base64') }).status(200).end();
-
-    } catch (error) {
-        console.log('error', error);
-        return res.send({ error }).status(400).end();
-    }
-
+    // capture screenshot
+    await captureScreen({ response: res, url: parsedParams.data.url, height: parsedParams.data.height, width: parsedParams.data.width, timeout: parsedParams.data.timeout, darkMode: parsedParams.data.darkMode, fullPage: parsedParams.data.fullPage, browserContext })
+        .catch(err => {
+            res.status(400).json({ error: err });
+        })
 }
 
 async function launchBrowser() {
-    let context = await chromium.launch({
+    browserContext = await chromium.launch({
         headless: true,
     });
-
-    browser = await context.newContext({
-        viewport: {
-            width: 1440,
-            height: 720
-        }
-    })
 }
 
