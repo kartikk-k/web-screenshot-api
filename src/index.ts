@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import cors from 'cors';
 import router from './router';
-
+import serverless from 'serverless-http'
 
 // for loding .env file
 // const path = require('path')
@@ -34,3 +34,6 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api', router())
+
+export const handler = serverless(app);
+
