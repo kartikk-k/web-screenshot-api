@@ -28,7 +28,7 @@ export const takeScreenshot = async (req: express.Request, res: express.Response
     const convertedWidth: number = parseInt(width as string) || CONSTANTS.width
 
     // parse and validate request params
-    const parsedParams = paramsSchema.safeParse({ url: url, height: convertedHeight, width: convertedWidth, timeout: timeout, fullPage: fullPage, darkMode: darkMode })
+    const parsedParams = paramsSchema.safeParse({ url: url, height: convertedHeight, width: convertedWidth, timeout: timeout, fullPage: fullPage?.toString().toLowerCase() === 'true', darkMode: darkMode?.toString().toLowerCase() === 'true' })
 
     // throw error if request params are invalid
     if (parsedParams.success === false) return res.status(400).json({ error: parsedParams.error.errors[0].message })
@@ -36,6 +36,9 @@ export const takeScreenshot = async (req: express.Request, res: express.Response
 
     // capture screenshot
     await captureScreen({ response: res, url: parsedParams.data.url, height: parsedParams.data.height, width: parsedParams.data.width, timeout: parsedParams.data.timeout, darkMode: parsedParams.data.darkMode, fullPage: parsedParams.data.fullPage, browserContext })
+        .then(binaryData => {
+            res.json({ result: binaryData })
+        })
         .catch(err => {
             res.status(400).json({ error: err });
         })

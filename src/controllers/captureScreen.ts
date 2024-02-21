@@ -67,12 +67,15 @@ async function captureScreen({ response, url, width, height, darkMode, browserCo
 
     // ---- clean-up ----
     response.on('finish', async () => {
+        console.log("cleaning up function")
         await page.close();
         await browser.close();
     });
 
+    return result.toString('base64');
+
     // send response
-    response.status(200).json({ result: result.toString('base64') });
+    // response.status(200).json({ result: result.toString('base64') });
 
 }
 
