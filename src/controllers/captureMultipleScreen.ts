@@ -17,7 +17,6 @@ interface ScreenshotOptions {
 
 async function captureMultipleScreen({ response, urls, width, height, darkMode, browserContext, timeout, fullPage }: ScreenshotOptions) {
 
-    // create a new browser context
     const browser = await browserContext.newContext({
         viewport: {
             width: width,
@@ -35,33 +34,46 @@ async function captureMultipleScreen({ response, urls, width, height, darkMode, 
             // open/create new page
             const page = await browser.newPage();
 
-            await page.goto(url,
-                timeout ? { waitUntil: 'load', timeout: timeout }
-                    : { waitUntil: 'load' })
+            // await page.goto(url,
+            //     timeout ? { waitUntil: 'load', timeout: timeout }
+            //         : { waitUntil: 'load' })
+            //     .catch((err) => {
+            //         throw Error(err);
+            //     })
+
+            await page.goto(url, { waitUntil: 'load' })
                 .catch((err) => {
                     throw Error(err);
                 })
 
-            // scroll to trigger lazy loading
-            await page.evaluate(() => {
-                return new Promise((resolve) => {
-                    let totalHeight = 0;
-                    let distance = window.innerHeight;
-                    let timer = setInterval(() => {
-                        let scrollHeight = document.body.scrollHeight;
-                        window.scrollBy(0, distance);
-                        totalHeight += distance;
 
-                        if (totalHeight >= scrollHeight) {
-                            clearInterval(timer);
-                            resolve(console.log(''));
-                        }
-                    }, 100);
+            if (fullPage) {
+                // scroll to trigger lazy loading
+                await page.evaluate(() => {
+                    return new Promise((resolve) => {
+                        let totalHeight = 0;
+                        let distance = window.innerHeight;
+                        let timer = setInterval(() => {
+                            let scrollHeight = document.body.scrollHeight;
+                            window.scrollBy(0, distance);
+                            totalHeight += distance;
+
+                            if (totalHeight >= scrollHeight) {
+                                clearInterval(timer);
+                                resolve(console.log(''));
+                            }
+                        }, 200);
+                    });
                 });
-            });
 
-            // add delay for loading assets
-            await page.waitForTimeout(1000);
+                // scroll to top
+                await page.evaluate(() => {
+                    window.scrollTo(0, 0);
+                });
+            }
+
+            // added delay for loading assets
+            await page.waitForTimeout(2000);
 
             // capture screenshot
             let result = await page.screenshot({
@@ -82,10 +94,10 @@ async function captureMultipleScreen({ response, urls, width, height, darkMode, 
     }))
 
     // ---- clean-up ----
-    response.on('finish', async () => {
-        console.log("cleaning up function")
-        await browser.close();
-    });
+    // response.on('finish', async () => {
+    //     console.log("cleaning up function")
+    //     await browser.close();
+    // });
 
     return listOfImages;
 }

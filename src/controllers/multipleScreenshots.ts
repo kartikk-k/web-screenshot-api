@@ -8,6 +8,8 @@ let browserContext: Browser | null = null;
 
 export const multipleScreenshot = async (req: express.Request, res: express.Response) => {
 
+    console.log('multipleScreenshot')
+
     // check if browser is already running otherwise launch it
     if (!browserContext) await launchBrowser();
 
@@ -44,23 +46,10 @@ export const multipleScreenshot = async (req: express.Request, res: express.Resp
     const convertedWidth: number = parseInt(width as string) || CONSTANTS.width
 
     // parse and validate request params
-    const parsedParams = paramsSchema.safeParse({ urls: validUrls, height: convertedHeight, width: convertedWidth, timeout: timeout, fullPage: fullPage, darkMode: darkMode?.toString().toLowerCase() === 'true' })
+    const parsedParams = paramsSchema.safeParse({ urls: validUrls, height: convertedHeight, width: convertedWidth, timeout: timeout, fullPage: fullPage?.toString().toLowerCase() === 'true', darkMode: darkMode?.toString().toLowerCase() === 'true' })
 
     // throw error if request params are invalid
     if (parsedParams.success === false) return res.status(400).json({ error: parsedParams.error.errors[0].message })
-
-
-    // return res.status(200).json({ urls: parsedParams.data.urls })
-    // loop here
-
-    // capture screenshot
-    // await captureMultipleScreen({ response: res, urls: parsedParams.data.urls, height: parsedParams.data.height, width: parsedParams.data.width, timeout: parsedParams.data.timeout, darkMode: parsedParams.data.darkMode, fullPage: parsedParams.data.fullPage, browserContext })
-    //     .then(binaryData => {
-    //         res.json({ result: binaryData })
-    //     })
-    //     .catch(err => {
-    //         res.status(400).json({ error: err });
-    //     })
 
     // start capturing multiple screenshots
     await captureMultipleScreen({ response: res, urls: parsedParams.data.urls, height: parsedParams.data.height, width: parsedParams.data.width, timeout: parsedParams.data.timeout, darkMode: parsedParams.data.darkMode, fullPage: parsedParams.data.fullPage, browserContext })
@@ -73,9 +62,6 @@ export const multipleScreenshot = async (req: express.Request, res: express.Resp
         .catch(err => {
             res.status(400).json({ error: err });
         })
-
-
-    // return res.status(200).json({ urls: validUrls })
 
 }
 
